@@ -6,6 +6,7 @@ from diffusers import StableDiffusion3Pipeline
 import googlemaps
 import os
 from PIL import Image
+from huggingface_hub import HfFolder
 from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration, T5EncoderModel, BitsAndBytesConfig # Added T5EncoderModel & BitsAndBytesConfig
 import re
 
@@ -88,14 +89,14 @@ def generate_image_descriptions():
             "role": "user",
             "content": [
                 {"type": "text",
-                 "text": "What is shown in each image? I don't care or want to know about watermarks. Keep it concise. Especially pay attention to weather, architecture, and lighting."},
+                 "text": "What is shown in the image? I don't care or want to know about watermarks. Be as descriptive as possible. Especially pay attention to weather, architecture, and lighting."},
                 {"type": "image"},
             ],
         },
     ]
 
     prompt = processor.apply_chat_template(conversation, add_generation_prompt=True)
-    inputs = processor(images=images, text=[prompt], return_tensors="pt").to("cuda:0")
+    inputs = processor(images=images, text=[prompt] * len(images), return_tensors="pt").to("cuda:0")
 
     response = model.generate(**inputs, max_new_tokens=4096)
 
@@ -108,47 +109,14 @@ def generate_image_descriptions():
 
     return cleaned
 
-def combine_descriptions(descriptions):
-    print("Combining descriptions")
-
-    combined_prompt = "Summarize the following descriptions, try to keep specific things about weather, architecture, and lighting: " + " ".join(descriptions)
-
-    processor = LlavaNextProcessor.from_pretrained("llava-hf/llava-v1.6-mistral-7b-hf")
-    model = LlavaNextForConditionalGeneration.from_pretrained(
-        "llava-hf/llava-v1.6-mistral-7b-hf",
-        torch_dtype=torch.float16,
-        quantization_config=llava_quantization_config, # set quant
-        device_map="cuda:0", # inline set device
-        attn_implementation="flash_attention_2", # flash attn 2
-    )
-
-    conversation = [
-        {
-            "role": "user",
-            "content": [
-                {"type": "text", "text": combined_prompt}
-            ],
-        },
-    ]
-
-    prompt = processor.apply_chat_template(conversation, add_generation_prompt=True)
-    inputs = processor(text=prompt, return_tensors="pt").to("cuda:0")
-
-    response = model.generate(**inputs, max_new_tokens=400)
-
-    decoded = processor.decode(response[0], skip_special_tokens=True)
-    summary_description = re.sub(r'\[INST\][\w\s\d\?]*.*\[\/INST\]', '', decoded, flags=re.MULTILINE).strip()
-
-    print("Descriptions combined")
-
-    return summary_description
-
 def create_optimized_prompt(llava_description):
     optimized_prompt = f"The location looks like this: {llava_description}"
     return optimized_prompt
 
 def generate_final_image(prompt):
     print("Generating final image")
+
+    HfFolder.save_token(HF_API_KEY)
 
     model_id = "stabilityai/stable-diffusion-3-medium-diffusers"
     text_encoder = T5EncoderModel.from_pretrained(
@@ -163,8 +131,13 @@ def generate_final_image(prompt):
         torch_dtype=torch.float16
     )
 
-    
-    image = pipe(prompt).images[0]
+    image = pipe(
+        prompt,
+        negative_prompt="",
+        num_inference_steps=30,
+        max_sequence_length=500
+    ).images[0]
+
     image.save("final_image.png")
 
     print("Final image generated.")
@@ -207,22 +180,14 @@ def main():
     print()
     print()
 
-    # Step 3: Combine descriptions
-    summary = combine_descriptions(image_descriptions)
-    print(summary)
+    # Step 3: Create optimized prompt
+    optimized_prompt = create_optimized_prompt(image_descriptions)
 
     print()
     print()
 
-    # Step 4: Create optimized prompt
-    optimized_prompt = create_optimized_prompt(summary)
-    # print(f"Optimized prompt: {optimized_prompt}")
-
-    print()
-    print()
-
-    # Step 5: Generate final image using SDXL-Turbo
+    # Step 4: Generate final image using SDXL-Turbo
     generate_final_image(optimized_prompt)
 
-user_prompt = "a shop in Beverly Hills on Rodeo Drive"
+user_prompt = "luxury goods store in Beverly Hills on Rodeo Drive"
 main()

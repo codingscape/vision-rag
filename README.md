@@ -4,9 +4,8 @@ This application uses real life imagery to generate images that match the user's
 ## How it works
 1. Find places using Google's Place API
 2. Send coordinates from step 1 to Google Street view and get images from 0, 90, 180, and 270 degrees for up to 4 of the places
-3. Send those images to llava to generate descriptions of the images
-4. Condense all descriptions into a single description using llava
-5. Use condensed description as a prompt to stable diffusion
+3. Send those images to llava to generate an overall description of the images
+4. Use condensed description as a prompt to stable diffusion
 
 ## Model versions
 - llava-hf/llava-v1.6-mistral-7b-hf
