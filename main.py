@@ -131,9 +131,13 @@ def generate_final_image(prompt):
         torch_dtype=torch.float16
     )
 
+    split = prompt.split()
+
     image = pipe(
-        prompt,
+        prompt=" ".join(split[0:50]),
+        prompt_3=prompt,
         negative_prompt="",
+        guidance_scale=10,
         num_inference_steps=30,
         max_sequence_length=500
     ).images[0]
