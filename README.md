@@ -20,6 +20,7 @@ SSH is the only supported way of running this on anything that's not local. `scp
 ## Application
 Pytorch must be installed separately due to varying hardware differences. Once that is installed, run `pip install -r requirements.txt`
 
-Right now, it's a standalone script with the prompt hard coded into it. Edit the prompt and run `python main.py`.
+Right now, it's a standalone script with the prompt hard coded into it. There are two ways to pass your Google and Hugging Face keys. Either CLI args or ENV vars.
+CLI args are `--google` and `--hf`. The ENV vars are `GOOGLE_API_KEY` and `HF_API_KEY`. You must use one of the two. Edit the prompt and run `python main.py`.
 
 You will need some pretty beefy hardware to run this on unless you have access to RunPod or GPU instances in AWS.

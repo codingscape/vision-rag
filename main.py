@@ -1,3 +1,4 @@
+import sys
 import random
 import requests
 import torch
@@ -188,6 +189,27 @@ def generate_final_image(prompt):
 
 
 def main():
+    try:
+        if '--google' in sys.argv:
+            google_index = sys.argv.index('--google')
+            GOOGLE_API_KEY = sys.argv[google_index + 1]
+
+        if '--hf' in sys.argv:
+            hf_index = sys.argv.index('--hf')
+            HF_API_KEY = sys.argv[hf_index + 1]
+
+        if not GOOGLE_API_KEY:
+            GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
+        if not HF_API_KEY:
+            HF_API_KEY = os.environ.get('HF_API_KEY')
+
+        if not GOOGLE_API_KEY or not HF_API_KEY:
+            raise ValueError
+
+    except (IndexError, ValueError):
+        print("Error: Invalid arguments provided")
+        sys.exit(2)
+
     # Step 1: Fetch Street View image
     coords = get_location_coordinates(user_prompt)
     get_street_view_image(coords)
