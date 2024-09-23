@@ -33,7 +33,7 @@ def get_street_view_image(coords):
 
     for idx, coord in enumerate(coords):
         for heading in HEADINGS:
-            url = f"https://maps.googleapis.com/maps/api/streetview?size=600x300&location={coord[0]},{coord[1]}&heading={heading}&key={GOOGLE_API_KEY}"
+            url = f"https://maps.googleapis.com/maps/api/streetview?size=600x400&location={coord[0]},{coord[1]}&heading={heading}&key={GOOGLE_API_KEY}&fov=100"
             response = requests.get(url)
 
             if response.status_code == 200:
@@ -136,7 +136,7 @@ def generate_final_image(prompt):
     image = pipe(
         prompt=" ".join(split[0:50]),
         prompt_3=prompt,
-        negative_prompt="",
+        negative_prompt="letters and numbers that aren't real, cars facing different directions in the same lane",
         guidance_scale=10,
         num_inference_steps=30,
         max_sequence_length=500
