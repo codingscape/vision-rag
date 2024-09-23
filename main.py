@@ -9,8 +9,8 @@ from PIL import Image
 from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration, T5EncoderModel, BitsAndBytesConfig # Added T5EncoderModel & BitsAndBytesConfig
 import re
 
-HF_API_KEY = ""
-GOOGLE_API_KEY = ""
+HF_API_KEY = None
+GOOGLE_API_KEY = None
 HEADINGS = [0, 90, 180, 270]
 IMAGE_FOLDER = "images"
 
@@ -47,16 +47,14 @@ def get_street_view_image(coords):
 
 def get_location_coordinates(description):
     print("Getting location coordinates")
+
     gmaps = googlemaps.Client(key=GOOGLE_API_KEY)
 
     result = gmaps.places(description, "textquery")
-
     size = len(result['results'])
-
     rand = random.sample(result['results'], int(size / 5))
 
     coords = []
-
     for r in rand:
         coords.append((r['geometry']['location']['lat'], r['geometry']['location']['lng']))
 
@@ -76,11 +74,8 @@ def generate_image_descriptions():
         device_map="cuda:0", # inline set device
         attn_implementation="flash_attention_2", # flash attn 2
     )
-    # model.to("cuda:0")
 
-    descriptions = []
     images = []
-
     for image_file in os.listdir(IMAGE_FOLDER):
         if image_file.endswith('.jpg'):
             image_path = os.path.join(IMAGE_FOLDER, image_file)
@@ -107,10 +102,6 @@ def generate_image_descriptions():
     decoded = processor.decode(response[0], skip_special_tokens=True)
     cleaned = re.sub(r'\[INST\][\w\s\d\?]*.*\[\/INST\]', '', decoded, flags=re.MULTILINE).strip()
 
-    # descriptions.append(cleaned)
-    #
-    # combined_description = " ".join(descriptions)
-
     print("Image descriptions generated")
 
     print(cleaned)
@@ -130,7 +121,6 @@ def combine_descriptions(descriptions):
         device_map="cuda:0", # inline set device
         attn_implementation="flash_attention_2", # flash attn 2
     )
-    # model.to("cuda:0")
 
     conversation = [
         {
@@ -159,14 +149,6 @@ def create_optimized_prompt(llava_description):
 
 def generate_final_image(prompt):
     print("Generating final image")
-    #pipe = StableDiffusion3Pipeline.from_pretrained(
-    #    "stabilityai/stable-diffusion-3-medium-diffusers",
-    #    torch_dtype=torch.float16,
-    #    negative_prompt="",
-    #    num_inference_steps=28,
-    #    guidance_scale=7.0,
-    #)
-    #pipe = pipe.to("cuda")
 
     model_id = "stabilityai/stable-diffusion-3-medium-diffusers"
     text_encoder = T5EncoderModel.from_pretrained(
@@ -183,12 +165,13 @@ def generate_final_image(prompt):
 
     
     image = pipe(prompt).images[0]
-    
     image.save("final_image.png")
+
     print("Final image generated.")
 
-
 def main():
+    global GOOGLE_API_KEY, HF_API_KEY
+
     try:
         if '--google' in sys.argv:
             google_index = sys.argv.index('--google')
@@ -241,5 +224,5 @@ def main():
     # Step 5: Generate final image using SDXL-Turbo
     generate_final_image(optimized_prompt)
 
-user_prompt = "paris, france cafe"
+user_prompt = "a shop in Beverly Hills on Rodeo Drive"
 main()
