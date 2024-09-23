@@ -10,8 +10,8 @@ from huggingface_hub import HfFolder
 from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration, T5EncoderModel, BitsAndBytesConfig # Added T5EncoderModel & BitsAndBytesConfig
 import re
 
-HF_API_KEY = None
-GOOGLE_API_KEY = None
+HF_API_KEY = ""
+GOOGLE_API_KEY = ""
 HEADINGS = [0, 90, 180, 270]
 IMAGE_FOLDER = "images"
 
