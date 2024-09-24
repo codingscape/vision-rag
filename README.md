@@ -28,3 +28,18 @@ CLI args are `--google` and `--hf`. The ENV vars are `GOOGLE_API_KEY` and `HF_AP
 If you want to generate multiple images you can use the `--num` CLI arg or the `NUM_IMAGES` ENV var.
 
 You will need some pretty beefy hardware to run this on unless you have access to RunPod or GPU instances in AWS.
+
+# Samples
+> luxury goods store in Beverly Hills on Rodeo Drive
+
+![](samples/sample1.png)
+![](samples/sample2.png)
+![](samples/sample3.png)
+![](samples/sample4.png)
+
+> cafe in paris france
+
+![](samples/sample5.png)
+![](samples/sample6.png)
+![](samples/sample7.png)
+![](samples/sample8.png)
