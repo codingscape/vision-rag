@@ -146,7 +146,7 @@ def generate_final_image(prompt, index):
 
     image.save(f"final_image_{index}.png")
 
-    print("Final image generated.")
+    print(f"Image {index + 1} of {NUM_IMAGES} generated.")
 
 def main():
     global GOOGLE_API_KEY, HF_API_KEY, NUM_IMAGES
