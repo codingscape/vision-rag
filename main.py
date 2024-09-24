@@ -14,6 +14,8 @@ HF_API_KEY = ""
 GOOGLE_API_KEY = ""
 HEADINGS = [0, 90, 180, 270]
 IMAGE_FOLDER = "images"
+MAX_PROMPT_LENGTH = 500
+NUM_IMAGES = 0
 
 # llava quantization config
 llava_quantization_config = BitsAndBytesConfig(
@@ -23,7 +25,6 @@ llava_quantization_config = BitsAndBytesConfig(
 )
 # sd quantization config
 sd_quantization_config = BitsAndBytesConfig(load_in_8bit=True)
-
 
 def get_street_view_image(coords):
     print("Fetching Street View images")
@@ -113,7 +114,7 @@ def create_optimized_prompt(llava_description):
     optimized_prompt = f"The location looks like this: {llava_description}"
     return optimized_prompt
 
-def generate_final_image(prompt):
+def generate_final_image(prompt, index):
     print("Generating final image")
 
     HfFolder.save_token(HF_API_KEY)
@@ -131,23 +132,24 @@ def generate_final_image(prompt):
         torch_dtype=torch.float16
     )
 
+    # The main prompt needs to be shortened to avoiding warnings about the model clipping it
     split = prompt.split()
 
     image = pipe(
         prompt=" ".join(split[0:50]),
-        prompt_3=prompt,
+        prompt_3=" ".join(split[0:MAX_PROMPT_LENGTH]),
         negative_prompt="letters and numbers that aren't real, cars facing different directions in the same lane",
         guidance_scale=10,
         num_inference_steps=30,
-        max_sequence_length=500
+        max_sequence_length=MAX_PROMPT_LENGTH
     ).images[0]
 
-    image.save("final_image.png")
+    image.save(f"final_image_{index}.png")
 
     print("Final image generated.")
 
 def main():
-    global GOOGLE_API_KEY, HF_API_KEY
+    global GOOGLE_API_KEY, HF_API_KEY, NUM_IMAGES
 
     try:
         if '--google' in sys.argv:
@@ -158,10 +160,16 @@ def main():
             hf_index = sys.argv.index('--hf')
             HF_API_KEY = sys.argv[hf_index + 1]
 
+        if '--num' in sys.argv:
+            amount_index = sys.argv.index('--num')
+            NUM_IMAGES = int(sys.argv[amount_index + 1])
+
         if not GOOGLE_API_KEY:
             GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
         if not HF_API_KEY:
             HF_API_KEY = os.environ.get('HF_API_KEY')
+        if not NUM_IMAGES:
+            NUM_IMAGES = int(os.environ.get('NUM_IMAGES', 1))
 
         if not GOOGLE_API_KEY or not HF_API_KEY:
             raise ValueError
@@ -170,28 +178,29 @@ def main():
         print("Error: Invalid arguments provided")
         sys.exit(2)
 
-    # Step 1: Fetch Street View image
-    coords = get_location_coordinates(user_prompt)
-    get_street_view_image(coords)
+    for i in range(NUM_IMAGES):
+        # Step 1: Fetch Street View image
+        coords = get_location_coordinates(user_prompt)
+        get_street_view_image(coords)
 
-    print()
-    print()
+        print()
+        print()
 
-    # Step 2: Get image description from LLaVA
-    image_descriptions = generate_image_descriptions()
-    print(f"Generated description: {image_descriptions}")
+        # Step 2: Get image description from LLaVA
+        image_descriptions = generate_image_descriptions()
+        print(f"Generated description: {image_descriptions}")
 
-    print()
-    print()
+        print()
+        print()
 
-    # Step 3: Create optimized prompt
-    optimized_prompt = create_optimized_prompt(image_descriptions)
+        # Step 3: Create optimized prompt
+        optimized_prompt = create_optimized_prompt(image_descriptions)
 
-    print()
-    print()
+        print()
+        print()
 
-    # Step 4: Generate final image using SDXL-Turbo
-    generate_final_image(optimized_prompt)
+        # Step 4: Generate final image using SDXL-Turbo
+        generate_final_image(optimized_prompt, i)
 
 user_prompt = "luxury goods store in Beverly Hills on Rodeo Drive"
 main()
