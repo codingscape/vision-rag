@@ -12,9 +12,12 @@ This application uses real life imagery to generate images that match the user's
 - stabilityai/stable-diffusion-3-medium-diffusers
 
 # Running
+## Requirements
 The models are hosted at Hugging Face so you will need to get an API key from them. You will also need a Google Maps API key.
 
 You will need approximately 32G of hard drive space to store the models.
+
+You must have the nVidia CUDA SDK installed and the ability to run `nvcc`
 
 ## Deployment
 SSH is the only supported way of running this on anything that's not local. `scp` `main.py` and `requirements.txt` to your chosen environment.
@@ -22,8 +25,8 @@ SSH is the only supported way of running this on anything that's not local. `scp
 ## Application
 Pytorch must be installed separately due to varying hardware differences. Once that is installed, run `pip install -r requirements.txt`
 
-Right now, it's a standalone script with the prompt hard coded into it. There are two ways to pass your Google and Hugging Face keys. Either CLI args or ENV vars.
-CLI args are `--google` and `--hf`. The ENV vars are `GOOGLE_API_KEY` and `HF_API_KEY`. You must use one of the two. Edit the prompt and run `python main.py`.
+Right now, it's a standalone script. There are two ways to pass your Google and Hugging Face keys. Either CLI args or ENV vars.
+CLI args are `--google` and `--hf`. The ENV vars are `GOOGLE_API_KEY` and `HF_API_KEY`. You must use one of the two. Using the `--prompt` CLI arg run `python main.py`.
 
 If you want to generate multiple images you can use the `--num` CLI arg or the `NUM_IMAGES` ENV var.
 

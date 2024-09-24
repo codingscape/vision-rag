@@ -9,6 +9,9 @@ from PIL import Image
 from huggingface_hub import HfFolder
 from transformers import LlavaNextProcessor, LlavaNextForConditionalGeneration, T5EncoderModel, BitsAndBytesConfig # Added T5EncoderModel & BitsAndBytesConfig
 import re
+import shutil
+import glob
+import math
 
 HF_API_KEY = ""
 GOOGLE_API_KEY = ""
@@ -16,6 +19,7 @@ HEADINGS = [0, 90, 180, 270]
 IMAGE_FOLDER = "images"
 MAX_PROMPT_LENGTH = 500
 NUM_IMAGES = 0
+PREFERRED_LOCATIONS = 4
 
 # llava quantization config
 llava_quantization_config = BitsAndBytesConfig(
@@ -28,9 +32,11 @@ sd_quantization_config = BitsAndBytesConfig(load_in_8bit=True)
 
 def get_street_view_image(coords):
     print("Fetching Street View images")
-    
-    if not os.path.exists(IMAGE_FOLDER):
-        os.makedirs(IMAGE_FOLDER)
+
+    if os.path.exists(IMAGE_FOLDER):
+        shutil.rmtree(IMAGE_FOLDER)
+
+    os.makedirs(IMAGE_FOLDER)
 
     for idx, coord in enumerate(coords):
         for heading in HEADINGS:
@@ -54,7 +60,9 @@ def get_location_coordinates(description):
 
     result = gmaps.places(description, "textquery")
     size = len(result['results'])
-    rand = random.sample(result['results'], int(size / 5))
+    ratio = size / PREFERRED_LOCATIONS
+
+    rand = random.sample(result['results'], math.ceil(size / ratio))
 
     coords = []
     for r in rand:
@@ -151,6 +159,8 @@ def generate_final_image(prompt, index):
 def main():
     global GOOGLE_API_KEY, HF_API_KEY, NUM_IMAGES
 
+    prompt = ""
+
     try:
         if '--google' in sys.argv:
             google_index = sys.argv.index('--google')
@@ -164,6 +174,10 @@ def main():
             amount_index = sys.argv.index('--num')
             NUM_IMAGES = int(sys.argv[amount_index + 1])
 
+        if '--prompt' in sys.argv:
+            prompt_index = sys.argv.index('--prompt')
+            prompt = sys.argv[prompt_index + 1]
+
         if not GOOGLE_API_KEY:
             GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
         if not HF_API_KEY:
@@ -171,16 +185,23 @@ def main():
         if not NUM_IMAGES:
             NUM_IMAGES = int(os.environ.get('NUM_IMAGES', 1))
 
-        if not GOOGLE_API_KEY or not HF_API_KEY:
+        if not GOOGLE_API_KEY or not HF_API_KEY or not prompt:
             raise ValueError
 
     except (IndexError, ValueError):
         print("Error: Invalid arguments provided")
         sys.exit(2)
 
+    files = glob.glob('*.png')
+    for path in files:
+        try:
+            os.remove(path)
+        except OSError:
+            print("Error while deleting file")
+
     for i in range(NUM_IMAGES):
         # Step 1: Fetch Street View image
-        coords = get_location_coordinates(user_prompt)
+        coords = get_location_coordinates(prompt)
         get_street_view_image(coords)
 
         print()
@@ -202,5 +223,4 @@ def main():
         # Step 4: Generate final image using SDXL-Turbo
         generate_final_image(optimized_prompt, i)
 
-user_prompt = "luxury goods store in Beverly Hills on Rodeo Drive"
 main()
