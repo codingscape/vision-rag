@@ -20,6 +20,7 @@ IMAGE_FOLDER = "images"
 MAX_PROMPT_LENGTH = 500
 NUM_IMAGES = 0
 PREFERRED_LOCATIONS = 4
+USE_FLASH_ATTN=True
 
 # llava quantization config
 llava_quantization_config = BitsAndBytesConfig(
@@ -77,12 +78,14 @@ def generate_image_descriptions():
 
     processor = LlavaNextProcessor.from_pretrained("llava-hf/llava-v1.6-mistral-7b-hf")
 
+    kwargs = {"torch_dtype":torch.float16, "quantization_config":llava_quantization_config, "device_map":"cuda:0"}
+
+    if USE_FLASH_ATTN:
+        kwargs.update({"attn_implementation":"flash_attention_2"})
+
     model = LlavaNextForConditionalGeneration.from_pretrained(
         "llava-hf/llava-v1.6-mistral-7b-hf",
-        torch_dtype=torch.float16,
-        quantization_config=llava_quantization_config, # set quant
-        device_map="cuda:0", # inline set device
-        attn_implementation="flash_attention_2", # flash attn 2
+        **kwargs
     )
 
     images = []
@@ -157,7 +160,7 @@ def generate_final_image(prompt, index):
     print(f"Image {index + 1} of {NUM_IMAGES} generated.")
 
 def main():
-    global GOOGLE_API_KEY, HF_API_KEY, NUM_IMAGES
+    global GOOGLE_API_KEY, HF_API_KEY, NUM_IMAGES, USE_FLASH_ATTN
 
     prompt = ""
 
@@ -177,6 +180,9 @@ def main():
         if '--prompt' in sys.argv:
             prompt_index = sys.argv.index('--prompt')
             prompt = sys.argv[prompt_index + 1]
+
+        if '--no-flash-attn' in sys.argv:
+            USE_FLASH_ATTN = False
 
         if not GOOGLE_API_KEY:
             GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')

@@ -30,6 +30,8 @@ CLI args are `--google` and `--hf`. The ENV vars are `GOOGLE_API_KEY` and `HF_AP
 
 If you want to generate multiple images you can use the `--num` CLI arg or the `NUM_IMAGES` ENV var.
 
+If you don't want to use `attn_implementation` with the value of "flash_attention_2", use the `--no-flash-attn` CLI arg.
+
 You will need some pretty beefy hardware to run this on unless you have access to RunPod or GPU instances in AWS.
 
 # Samples
