@@ -23,7 +23,8 @@ You must have the nVidia CUDA SDK installed and the ability to run `nvcc`
 SSH is the only supported way of running this on anything that's not local. `scp` `main.py` and `requirements.txt` to your chosen environment.
 
 ## Application
-Pytorch must be installed separately due to varying hardware differences. Once that is installed, run `pip install -r requirements.txt`
+Pytorch must be installed separately due to varying hardware differences. Once that is installed, run `pip install -r requirements.txt`. If you are unable to install
+`flash_attn` you can remove the requirement and use the `--no-flash-attn` CLI arg like below. 
 
 Right now, it's a standalone script. There are two ways to pass your Google and Hugging Face keys. Either CLI args or ENV vars.
 CLI args are `--google` and `--hf`. The ENV vars are `GOOGLE_API_KEY` and `HF_API_KEY`. You must use one of the two. Using the `--prompt` CLI arg run `python main.py`.
