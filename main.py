@@ -12,15 +12,13 @@ import re
 import shutil
 import glob
 import math
+import configargparse
 
-HF_API_KEY = ""
-GOOGLE_API_KEY = ""
 HEADINGS = [0, 90, 180, 270]
 IMAGE_FOLDER = "images"
 MAX_PROMPT_LENGTH = 500
-NUM_IMAGES = 0
 PREFERRED_LOCATIONS = 4
-USE_FLASH_ATTN=True
+OPTIONS = []
 
 # llava quantization config
 llava_quantization_config = BitsAndBytesConfig(
@@ -41,7 +39,8 @@ def get_street_view_image(coords):
 
     for idx, coord in enumerate(coords):
         for heading in HEADINGS:
-            url = f"https://maps.googleapis.com/maps/api/streetview?size=600x400&location={coord[0]},{coord[1]}&heading={heading}&key={GOOGLE_API_KEY}&fov=100"
+            url = f"https://maps.googleapis.com/maps/api/streetview?size=600x400&location={coord[0]},{coord[1]}&heading={heading}&key={OPTIONS.google}&fov=100"
+
             response = requests.get(url)
 
             if response.status_code == 200:
@@ -57,7 +56,7 @@ def get_street_view_image(coords):
 def get_location_coordinates(description):
     print("Getting location coordinates")
 
-    gmaps = googlemaps.Client(key=GOOGLE_API_KEY)
+    gmaps = googlemaps.Client(key=OPTIONS.google)
 
     result = gmaps.places(description, "textquery")
     size = len(result['results'])
@@ -80,7 +79,7 @@ def generate_image_descriptions():
 
     kwargs = {"torch_dtype":torch.float16, "quantization_config":llava_quantization_config, "device_map":"cuda:0"}
 
-    if USE_FLASH_ATTN:
+    if OPTIONS.use_flash_attr:
         kwargs.update({"attn_implementation":"flash_attention_2"})
 
     model = LlavaNextForConditionalGeneration.from_pretrained(
@@ -128,7 +127,7 @@ def create_optimized_prompt(llava_description):
 def generate_final_image(prompt, index):
     print("Generating final image")
 
-    HfFolder.save_token(HF_API_KEY)
+    HfFolder.save_token(OPTIONS.hf)
 
     model_id = "stabilityai/stable-diffusion-3-medium-diffusers"
     text_encoder = T5EncoderModel.from_pretrained(
@@ -157,46 +156,20 @@ def generate_final_image(prompt, index):
 
     image.save(f"final_image_{index}.png")
 
-    print(f"Image {index + 1} of {NUM_IMAGES} generated.")
+    print(f"Image {index + 1} of {OPTIONS.num} generated.")
 
 def main():
-    global GOOGLE_API_KEY, HF_API_KEY, NUM_IMAGES, USE_FLASH_ATTN
+    global OPTIONS
 
-    prompt = ""
+    parser = configargparse.ArgParser(prog="Vision RAG", description="AI image generator that uses real pictures")
 
-    try:
-        if '--google' in sys.argv:
-            google_index = sys.argv.index('--google')
-            GOOGLE_API_KEY = sys.argv[google_index + 1]
+    parser.add("--google", env_var="GOOGLE_API_KEY", help="Google API key", required=True)
+    parser.add("--hf", env_var="HF_API_KEY", help="Hugging Face API key", required=True)
+    parser.add("--num", help="Number of images to generate", default=1, type=int)
+    parser.add("--prompt", help="Your prompt", required=True)
+    parser.add("--no-flash-attn", action="store_false", help="Don't use flash attention", dest="use_flash_attr")
 
-        if '--hf' in sys.argv:
-            hf_index = sys.argv.index('--hf')
-            HF_API_KEY = sys.argv[hf_index + 1]
-
-        if '--num' in sys.argv:
-            amount_index = sys.argv.index('--num')
-            NUM_IMAGES = int(sys.argv[amount_index + 1])
-
-        if '--prompt' in sys.argv:
-            prompt_index = sys.argv.index('--prompt')
-            prompt = sys.argv[prompt_index + 1]
-
-        if '--no-flash-attn' in sys.argv:
-            USE_FLASH_ATTN = False
-
-        if not GOOGLE_API_KEY:
-            GOOGLE_API_KEY = os.environ.get('GOOGLE_API_KEY')
-        if not HF_API_KEY:
-            HF_API_KEY = os.environ.get('HF_API_KEY')
-        if not NUM_IMAGES:
-            NUM_IMAGES = int(os.environ.get('NUM_IMAGES', 1))
-
-        if not GOOGLE_API_KEY or not HF_API_KEY or not prompt:
-            raise ValueError
-
-    except (IndexError, ValueError):
-        print("Error: Invalid arguments provided")
-        sys.exit(2)
+    OPTIONS = parser.parse_args()
 
     files = glob.glob('*.png')
     for path in files:
@@ -205,9 +178,9 @@ def main():
         except OSError:
             print("Error while deleting file")
 
-    for i in range(NUM_IMAGES):
+    for i in range(OPTIONS.num):
         # Step 1: Fetch Street View image
-        coords = get_location_coordinates(prompt)
+        coords = get_location_coordinates(OPTIONS.prompt)
         get_street_view_image(coords)
 
         print()

@@ -9,3 +9,4 @@ accelerate==0.34.2
 bitsandbytes==0.43.3
 flash_attn==2.6.3
 huggingface_hub==0.25.1
+configargparse==1.7
