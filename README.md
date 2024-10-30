@@ -1,5 +1,5 @@
 # Codingscape Vision RAG Image Generator
-This application uses real life imagery to generate images that match the user's description.
+This application uses real life imagery to generate images that match the user's description.  More information about the project can be found [on the Codingscape Blog](https://codingscape.com/blog/vision-rag-tool-uses-llava-to-increase-cultural-accuracy-in-images)
 
 ## How it works
 1. Find places using Google's Place API
